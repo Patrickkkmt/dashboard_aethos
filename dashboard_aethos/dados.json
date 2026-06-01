@@ -1,0 +1,90 @@
+{
+    "funnel": {
+        "labels": [
+            "Leads",
+            "Em contato",
+            "Perdidos",
+            "Perdidos sob controle",
+            "Reuniões agendadas",
+            "No-show"
+        ],
+        "data": [
+            107,
+            10,
+            53,
+            11,
+            26,
+            3
+        ]
+    },
+    "vendedores": {
+        "labels": [
+            "Luan",
+            "Luiz",
+            "Fernando",
+            "Karine"
+        ],
+        "data": [
+            5,
+            6,
+            10,
+            5
+        ]
+    },
+    "perdas_split": {
+        "labels": [
+            "Nossa solução não atende",
+            "Não tem potencial financeiro",
+            "Número inválido",
+            "Lead Frio",
+            "Não foi possível contato com lead"
+        ],
+        "facebook_data": [
+            8,
+            2,
+            8,
+            5,
+            11
+        ],
+        "organico_data": [
+            2,
+            9,
+            3,
+            3,
+            0
+        ]
+    },
+    "origens": {
+        "labels": [
+            "Facebook Ads",
+            "Orgânico"
+        ],
+        "data": [
+            107,
+            38
+        ]
+    },
+    "qualidade_split": {
+        "labels": [
+            "1 Estrela",
+            "2 Estrelas",
+            "3 Estrelas",
+            "4 Estrelas",
+            "5 Estrelas"
+        ],
+        "facebook_data": [
+            25,
+            0,
+            23,
+            10,
+            11
+        ],
+        "organico_data": [
+            20,
+            2,
+            12,
+            0,
+            4
+        ]
+    }
+}
