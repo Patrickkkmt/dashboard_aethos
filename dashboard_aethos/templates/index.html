@@ -74,6 +74,27 @@
     ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
 
     canvas { max-width: 100%; }
+    /* Estilo do botão de Visão Anual */
+.btn-visao-anual {
+    background-color: #4338ca; 
+    color: white; 
+    padding: 10px 20px; 
+    text-decoration: none; 
+    border-radius: 8px; 
+    font-weight: bold;
+    font-family: sans-serif;
+    display: inline-block;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease; /* Prepara para a animação */
+}
+
+/* Efeito ao passar o mouse por cima */
+.btn-visao-anual:hover {
+    background-color: #312e81; 
+    transform: translateY(-2px); /* Dá um leve pulinho para cima */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
   </style>
 
   <script>
@@ -124,6 +145,7 @@
         </div>
         <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50"></div>
         <span class="text-emerald-300 text-xs font-medium">Ao vivo</span>
+        <a href="/visao-anual" style="">📊 Ver Visão Anual</a>
       </div>
 
     </div>
