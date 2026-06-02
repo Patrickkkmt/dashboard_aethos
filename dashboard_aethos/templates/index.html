@@ -31,6 +31,20 @@
     * { font-family: 'DM Sans', sans-serif; }
     .mono { font-family: 'DM Mono', monospace; }
 
+        /* Estilo do botão de Visão Anual */
+<a href="/visao-anual" class="ml-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors backdrop-blur-sm flex items-center gap-2">
+  <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+  </svg>
+  Visão Anual
+</a>
+
+/* Efeito ao passar o mouse por cima */
+.btn-visao-anual:hover {
+    background-color: #312e81; 
+    transform: translateY(-2px); /* Dá um leve pulinho para cima */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
     body { background-color: #f1f5f9; }
 
     /* Header gradient sutil */
@@ -74,27 +88,6 @@
     ::-webkit-scrollbar-thumb { background: #c7d2fe; border-radius: 3px; }
 
     canvas { max-width: 100%; }
-    /* Estilo do botão de Visão Anual */
-.btn-visao-anual {
-    background-color: #4338ca; 
-    color: white; 
-    padding: 10px 20px; 
-    text-decoration: none; 
-    border-radius: 8px; 
-    font-weight: bold;
-    font-family: sans-serif;
-    display: inline-block;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: all 0.3s ease; /* Prepara para a animação */
-}
-
-/* Efeito ao passar o mouse por cima */
-.btn-visao-anual:hover {
-    background-color: #312e81; 
-    transform: translateY(-2px); /* Dá um leve pulinho para cima */
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-}
   </style>
 
   <script>
