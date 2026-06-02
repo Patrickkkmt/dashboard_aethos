@@ -41,7 +41,10 @@ def dashboard():
     # Passa a variável 'dados_dashboard' com o nome 'dados' para o HTML
     return render_template("index.html", dados=dados_dashboard)
 
-
+@app.route('/visao-anual')
+def visao_anual():
+    # Aqui renderizamos o novo arquivo HTML que vai conter os gráficos anuais
+    return render_template('visao_anual.html')
 # 2. ROTA DE RECEBIMENTO DO N8N
 @app.route('/atualizar-dados', methods=['POST'])
 def atualizar_dados():
