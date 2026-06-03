@@ -1,65 +1,47 @@
+Achei exatamente o culpado! O problema está nas entrelinhas desse código.
+
+Se você reparar bem no seu arquivo, a rota @app.route('/visao-anual') está repetida duas vezes! Você colou a versão nova (que lê o arquivo salvo), mas a versão antiga (aquela que nós tínhamos feito com os dados vazios de teste) ficou lá em baixo.
+
+O que aconteceu nos bastidores:
+Quando o Flask tenta iniciar e vê duas rotas com o mesmo nome, ele "crasha" (dá erro de inicialização). Como o código crashou, o Render não conseguiu colocar a sua nova versão no ar e continuou a rodar a versão velha (que ainda não tinha o "ouvido" do webhook). É por isso que o n8n continuou a bater na porta e a receber um 404 Not Found!
+
+Eu limpei o código, removi a duplicada e organizei a estrutura de cima a baixo. Apague tudo o que está no seu app.py e substitua por isto:
+
+Python
 from flask import Flask, render_template, request, jsonify
 import json
 import os
 
 app = Flask(__name__)
 
-# 1. ROTA DA PÁGINA INICIAL (Apenas uma)
+# =========================================================
+# 1. ROTA DA PÁGINA INICIAL (DASHBOARD MENSAL)
+# =========================================================
 @app.route("/")
 def dashboard():
-    # Se o n8n já tiver enviado dados, lê o arquivo local. Se não, usa os dados padrão.
     if os.path.exists('dados.json'):
         with open('dados.json', 'r', encoding='utf-8') as f:
             dados_dashboard = json.load(f)
     else:
-        # Dados padrão idênticos aos que o Claude gerou para o seu layout não abrir vazio
         dados_dashboard = {
-            "funnel": {
-                "labels": ["Leads", "Em contato", "Perdidos", "Perdidos sob controle", "Reuniões agendadas", "No-show"],
-                "data": [102, 8, 50, 11, 26, 3]
-            },
-            "vendedores": {
-                "labels": ["Luan", "Luiz", "Fernando", "Karine"],
-                "data": [5, 6, 10, 5]
-            },
-            "perdas_split": {
-                "labels": ["Nossa solução não atende", "Não tem potencial financeiro", "Número inválido", "Desqualificado", "Lead Frio"],
-                "facebook_data": [8, 2, 7, 10, 4],
-                "organico_data": [2, 9, 3, 7, 3]
-            },
-            "origens": {
-                "labels": ["Facebook Ads", "Orgânico"],
-                "data": [64, 38]
-            },
-            "qualidade_split": {
-                "labels": ["1 Estrela", "2 Estrelas", "3 Estrelas", "4 Estrelas", "5 Estrelas"],
-                "facebook_data": [22, 0, 22, 10, 10],
-                "organico_data": [20, 2, 12, 0, 4]
-            }
+            "funnel": {"labels": ["Leads", "Em contato", "Perdidos", "Perdidos sob controle", "Reuniões agendadas", "No-show"], "data": [102, 8, 50, 11, 26, 3]},
+            "vendedores": {"labels": ["Luan", "Luiz", "Fernando", "Karine"], "data": [5, 6, 10, 5]},
+            "perdas_split": {"labels": ["Nossa solução não atende", "Não tem potencial financeiro", "Número inválido", "Desqualificado", "Lead Frio"], "facebook_data": [8, 2, 7, 10, 4], "organico_data": [2, 9, 3, 7, 3]},
+            "origens": {"labels": ["Facebook Ads", "Orgânico"], "data": [64, 38]},
+            "qualidade_split": {"labels": ["1 Estrela", "2 Estrelas", "3 Estrelas", "4 Estrelas", "5 Estrelas"], "facebook_data": [22, 0, 22, 10, 10], "organico_data": [20, 2, 12, 0, 4]}
         }
-    
-    # Passa a variável 'dados_dashboard' com o nome 'dados' para o HTML
     return render_template("index.html", dados=dados_dashboard)
-# Rota escondida que o n8n vai chamar para injetar os dados
-@app.route('/webhook/visao-anual', methods=['POST'])
-def webhook_visao_anual():
-    dados_recebidos = request.json
-    
-    # Salva os dados num arquivo JSON local
-    with open('dados_anuais.json', 'w') as f:
-        json.dump(dados_recebidos, f)
-        
-    return {"status": "sucesso", "mensagem": "Dados anuais atualizados!"}, 200
 
-# Atualize a rota da página para ler o arquivo salvo
+# =========================================================
+# 2. ROTA DA PÁGINA ANUAL
+# =========================================================
 @app.route('/visao-anual')
 def visao_anual():
     try:
-        # Tenta ler o arquivo que o n8n salvou
         with open('dados_anuais.json', 'r') as f:
             dados_reais = json.load(f)
     except FileNotFoundError:
-        # Se o n8n ainda não tiver mandado nada, usa aquele modelo vazio para não quebrar a página
+        # Fallback de segurança se o n8n ainda não tiver enviado nada
         dados_reais = {
             "labels_meses": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
             "total_leads": {"facebook": [], "organico": [], "total": []},
@@ -69,24 +51,13 @@ def visao_anual():
             "perdas_org": [],
             "vendedores": {"Luan": [], "Luiz": [], "Fernando": [], "Karine": []}
         }
-    
     return render_template('visao_anual.html', dados_anuais=dados_reais)
-@app.route('/visao-anual')
-def visao_anual():
-    # Por enquanto, vamos mandar um dicionário vazio apenas para a página abrir sem dar erro nos gráficos.
-    # Quando o n8n estiver mandando os dados reais, trocaremos essa parte!
-    dados_vazios = {
-        "labels_meses": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
-        "total_leads": {"facebook": [], "organico": [], "total": []},
-        "qualidade_fb": {"1_estrela": [], "2_estrelas": [], "3_estrelas": [], "4_estrelas": [], "5_estrelas": []},
-        "qualidade_org": {"1_estrela": [], "2_estrelas": [], "3_estrelas": [], "4_estrelas": [], "5_estrelas": []},
-        "perdas_fb": [],
-        "perdas_org": [],
-        "vendedores": {"Luan": [], "Luiz": [], "Fernando": [], "Karine": []}
-    }
-    
-    return render_template('visao_anual.html', dados_anuais=dados_vazios)
-# 2. ROTA DE RECEBIMENTO DO N8N
+
+# =========================================================
+# 3. WEBHOOKS (ONDE O N8N INJETA OS DADOS)
+# =========================================================
+
+# Recebe os dados do mês atual
 @app.route('/atualizar-dados', methods=['POST'])
 def atualizar_dados():
     try:
@@ -101,6 +72,13 @@ def atualizar_dados():
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+# Recebe os dados do consolidado anual
+@app.route('/webhook/visao-anual', methods=['POST'])
+def webhook_visao_anual():
+    dados_recebidos = request.json
+    with open('dados_anuais.json', 'w') as f:
+        json.dump(dados_recebidos, f)
+    return {"status": "sucesso", "mensagem": "Dados anuais atualizados!"}, 200
 
 if __name__ == "__main__":
     app.run(debug=True)
