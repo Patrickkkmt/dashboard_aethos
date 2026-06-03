@@ -75,10 +75,19 @@ def atualizar_dados():
 # Recebe os dados do consolidado anual
 @app.route('/webhook/visao-anual', methods=['POST'])
 def webhook_visao_anual():
-    dados_recebidos = request.json
-    with open('dados_anuais.json', 'w') as f:
-        json.dump(dados_recebidos, f)
-    return {"status": "sucesso", "mensagem": "Dados anuais atualizados!"}, 200
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    try:
+        # get_json(force=True) obriga o Flask a ler o pacote mesmo se o n8n falhar no cabeçalho
+        dados_recebidos = request.get_json(force=True)
+        
+        if not dados_recebidos:
+            return jsonify({"erro": "Pacote vazio enviado pelo n8n"}), 400
+            
+        # encoding='utf-8' garante que os acentos (ã, ç) sejam salvos perfeitamente sem crashar o app
+        with open('dados_anuais.json', 'w', encoding='utf-8') as f:
+            json.dump(dados_recebidos, f, ensure_ascii=False, indent=4)
+            
+        return jsonify({"status": "sucesso", "mensagem": "Dados anuais gravados!"}), 200
+        
+    except Exception as e:
+        # Se falhar, agora o site devolve o erro exato para o n8n em vez de uma página HTML quebrada
+        return jsonify({"erro_interno": str(e)}), 500
