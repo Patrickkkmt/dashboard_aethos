@@ -149,6 +149,35 @@
     // Este objeto simula a estrutura que o Mistral vai devolver para você testar a tela.
     const anoData = JSON.parse('{{ dados_anuais | tojson | safe }}');
 
+    // =======================================================================
+    // NOVO: FILTRO INTELIGENTE DE MESES FUTUROS
+    // =======================================================================
+    // 1. Descobre qual é o último mês que tem dados (Total > 0)
+    let ultimoMes = anoData.total_leads.total.length - 1;
+    while (ultimoMes >= 0 && anoData.total_leads.total[ultimoMes] === 0) {
+        ultimoMes--;
+    }
+    if (ultimoMes < 0) ultimoMes = 0; // Garante que mostre pelo menos Janeiro
+
+    // 2. Corta os rótulos (Eixo X) para terminar no mês atual
+    anoData.labels_meses = anoData.labels_meses.slice(0, ultimoMes + 1);
+
+    // 3. Função para "fatiar" as listas de números matematicamente
+    const cortarGrafico = (array) => array.slice(0, ultimoMes + 1);
+
+    // 4. Aplica a limpeza a todas as métricas do painel
+    anoData.total_leads.total = cortarGrafico(anoData.total_leads.total);
+    anoData.total_leads.facebook = cortarGrafico(anoData.total_leads.facebook);
+    anoData.total_leads.organico = cortarGrafico(anoData.total_leads.organico);
+
+    for (let k in anoData.qualidade_fb) anoData.qualidade_fb[k] = cortarGrafico(anoData.qualidade_fb[k]);
+    for (let k in anoData.qualidade_org) anoData.qualidade_org[k] = cortarGrafico(anoData.qualidade_org[k]);
+    for (let k in anoData.vendedores) anoData.vendedores[k] = cortarGrafico(anoData.vendedores[k]);
+    
+    anoData.perdas_fb.forEach(motivo => motivo.data = cortarGrafico(motivo.data));
+    anoData.perdas_org.forEach(motivo => motivo.data = cortarGrafico(motivo.data));
+    // =======================================================================
+
     // 2. CONFIGURAÇÕES GLOBAIS DO CHART.JS
     Chart.defaults.font.family = "'DM Sans', sans-serif";
     Chart.defaults.color = '#94a3b8';
