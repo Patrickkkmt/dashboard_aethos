@@ -1,12 +1,3 @@
-Achei exatamente o culpado! O problema está nas entrelinhas desse código.
-
-Se você reparar bem no seu arquivo, a rota @app.route('/visao-anual') está repetida duas vezes! Você colou a versão nova (que lê o arquivo salvo), mas a versão antiga (aquela que nós tínhamos feito com os dados vazios de teste) ficou lá em baixo.
-
-O que aconteceu nos bastidores:
-Quando o Flask tenta iniciar e vê duas rotas com o mesmo nome, ele "crasha" (dá erro de inicialização). Como o código crashou, o Render não conseguiu colocar a sua nova versão no ar e continuou a rodar a versão velha (que ainda não tinha o "ouvido" do webhook). É por isso que o n8n continuou a bater na porta e a receber um 404 Not Found!
-
-Eu limpei o código, removi a duplicada e organizei a estrutura de cima a baixo. Apague tudo o que está no seu app.py e substitua por isto:
-
 Python
 from flask import Flask, render_template, request, jsonify
 import json
