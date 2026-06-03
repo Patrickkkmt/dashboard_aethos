@@ -43,8 +43,19 @@ def dashboard():
 
 @app.route('/visao-anual')
 def visao_anual():
-    # Aqui renderizamos o novo arquivo HTML que vai conter os gráficos anuais
-    return render_template('visao_anual.html')
+    # Por enquanto, vamos mandar um dicionário vazio apenas para a página abrir sem dar erro nos gráficos.
+    # Quando o n8n estiver mandando os dados reais, trocaremos essa parte!
+    dados_vazios = {
+        "labels_meses": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+        "total_leads": {"facebook": [], "organico": [], "total": []},
+        "qualidade_fb": {"1_estrela": [], "2_estrelas": [], "3_estrelas": [], "4_estrelas": [], "5_estrelas": []},
+        "qualidade_org": {"1_estrela": [], "2_estrelas": [], "3_estrelas": [], "4_estrelas": [], "5_estrelas": []},
+        "perdas_fb": [],
+        "perdas_org": [],
+        "vendedores": {"Luan": [], "Luiz": [], "Fernando": [], "Karine": []}
+    }
+    
+    return render_template('visao_anual.html', dados_anuais=dados_vazios)
 # 2. ROTA DE RECEBIMENTO DO N8N
 @app.route('/atualizar-dados', methods=['POST'])
 def atualizar_dados():
