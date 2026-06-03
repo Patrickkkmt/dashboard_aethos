@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visão Anual · Aethos Sistemas</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: DM Sans + DM Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <style>
+    * { font-family: 'DM Sans', sans-serif; }
+    .mono { font-family: 'DM Mono', monospace; }
+    body { background-color: #f1f5f9; }
+
+    .header-gradient {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    }
+
+    .chart-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .chart-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px -12px rgba(99,102,241,0.18);
+    }
+
+    .kpi-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #6366f1, #a5b4fc);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.45s ease both; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+
+  <!-- ================= HEADER ================= -->
+  <header class="header-gradient shadow-xl">
+    <div class="max-w-screen-xl mx-auto px-6 py-5 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm">
+          <svg class="w-5 h-5 text-indigo-200" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-indigo-300 text-xs font-medium tracking-widest uppercase mono">Aethos Sistemas</p>
+          <h1 class="text-white text-xl font-semibold leading-tight tracking-tight">Desempenho Anual</h1>
+        </div>
+      </div>
+      
+      <!-- Botão Voltar -->
+      <a href="/" class="bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors backdrop-blur-sm flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        Voltar ao Mensal
+      </a>
+    </div>
+    <div class="h-px bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent"></div>
+  </header>
+
+  <!-- ================= CHARTS GRID ================= -->
+  <main class="max-w-screen-xl mx-auto px-6 py-7 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- 1. Total de Leads (Full Width) -->
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 chart-card fade-up">
+      <h2 class="text-slate-800 text-base font-semibold">Total de Leads (Volume Mensal)</h2>
+      <p class="text-slate-400 text-xs mt-0.5 mb-4">Comparativo de entradas: Facebook Ads vs Orgânico vs Total</p>
+      <div class="kpi-bar w-16 mb-5"></div>
+      <div style="height: 300px;">
+        <canvas id="chartTotalLeads"></canvas>
+      </div>
+    </div>
+
+    <!-- 2. Qualidade FB -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 chart-card fade-up delay-1">
+      <h2 class="text-slate-800 text-base font-semibold">Qualidade de Leads — Facebook Ads</h2>
+      <p class="text-slate-400 text-xs mt-0.5 mb-4">Evolução térmica das estrelas (1 a 5)</p>
+      <div class="kpi-bar w-16 mb-5"></div>
+      <div style="height: 280px;">
+        <canvas id="chartQualidadeFB"></canvas>
+      </div>
+    </div>
+
+    <!-- 3. Qualidade Orgânico -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 chart-card fade-up delay-1">
+      <h2 class="text-slate-800 text-base font-semibold">Qualidade de Leads — Orgânico</h2>
+      <p class="text-slate-400 text-xs mt-0.5 mb-4">Evolução térmica das estrelas (1 a 5)</p>
+      <div class="kpi-bar w-16 mb-5"></div>
+      <div style="height: 280px;">
+        <canvas id="chartQualidadeOrg"></canvas>
+      </div>
+    </div>
+
+    <!-- 4. Motivos de Perda FB (Full Width) -->
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 chart-card fade-up delay-2">
+      <h2 class="text-slate-800 text-base font-semibold">Motivos de Perda — Facebook Ads</h2>
+      <p class="text-slate-400 text-xs mt-0.5 mb-4">Acompanhamento dos 13 motivos de perda ao longo do ano</p>
+      <div class="kpi-bar w-16 mb-5"></div>
+      <div style="height: 350px;">
+        <canvas id="chartPerdasFB"></canvas>
+      </div>
+    </div>
+
+    <!-- 5. Motivos de Perda Orgânico (Full Width) -->
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 chart-card fade-up delay-2">
+      <h2 class="text-slate-800 text-base font-semibold">Motivos de Perda — Orgânico</h2>
+      <p class="text-slate-400 text-xs mt-0.5 mb-4">Acompanhamento dos 13 motivos de perda ao longo do ano</p>
+      <div class="kpi-bar w-16 mb-5"></div>
+      <div style="height: 350px;">
+        <canvas id="chartPerdasOrg"></canvas>
+      </div>
+    </div>
+
+    <!-- 6. Vendedores (Full Width) -->
+    <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 chart-card fade-up delay-3">
+      <h2 class="text-slate-800 text-base font-semibold">Distribuição por Vendedor</h2>
+      <p class="text-slate-400 text-xs mt-0.5 mb-4">Leads passados mensalmente para o time</p>
+      <div class="kpi-bar w-16 mb-5"></div>
+      <div style="height: 300px;">
+        <canvas id="chartVendedores"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script>
+    // 1. INJEÇÃO DE DADOS (Substitua por {{ dados_anuais | tojson | safe }} na produção Flask)
+    // Este objeto simula a estrutura que o Mistral vai devolver para você testar a tela.
+    const anoData = JSON.parse('{{ dados_anuais | tojson | safe }}');
+
+    // 2. CONFIGURAÇÕES GLOBAIS DO CHART.JS
+    Chart.defaults.font.family = "'DM Sans', sans-serif";
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.elements.line.tension = 0.3; // Deixa as linhas com curvas suaves
+    Chart.defaults.elements.point.radius = 3;
+    Chart.defaults.elements.point.hoverRadius = 6;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#1e293b';
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+
+    // 3. PALETAS DE CORES
+    const colors = {
+      fb: '#1877F2',
+      org: '#34d399',
+      total: '#6366f1',
+      estrelas: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'], // Vermelho -> Verde
+      vendedores: ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b'], // Cores distintas
+      // 13 cores de alto contraste para os motivos de perda
+      perdas: [
+        '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', 
+        '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6'
+      ]
+    };
+
+    // Configuração base para os eixos de todos os gráficos de linha
+    const commonScales = {
+      x: { grid: { display: false }, ticks: { color: '#64748b' } },
+      y: { grid: { color: '#f1f5f9' }, border: { display: false } }
+    };
+
+    // ================= INSTÂNCIA DOS GRÁFICOS =================
+
+    // 1. Total Leads
+    new Chart(document.getElementById('chartTotalLeads'), {
+      type: 'line',
+      data: {
+        labels: anoData.labels_meses,
+        datasets: [
+          { label: 'Total Geral', data: anoData.total_leads.total, borderColor: colors.total, backgroundColor: colors.total, borderDash: [5, 5], borderWidth: 2 },
+          { label: 'Facebook Ads', data: anoData.total_leads.facebook, borderColor: colors.fb, backgroundColor: colors.fb, borderWidth: 3 },
+          { label: 'Orgânico', data: anoData.total_leads.organico, borderColor: colors.org, backgroundColor: colors.org, borderWidth: 3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: commonScales }
+    });
+
+    // Função auxiliar para montar os datasets de Estrelas
+    const buildEstrelasDatasets = (dadosQualidade) => [
+      { label: '1 Estrela', data: dadosQualidade['1_estrela'], borderColor: colors.estrelas[0], backgroundColor: colors.estrelas[0] },
+      { label: '2 Estrelas', data: dadosQualidade['2_estrelas'], borderColor: colors.estrelas[1], backgroundColor: colors.estrelas[1] },
+      { label: '3 Estrelas', data: dadosQualidade['3_estrelas'], borderColor: colors.estrelas[2], backgroundColor: colors.estrelas[2] },
+      { label: '4 Estrelas', data: dadosQualidade['4_estrelas'], borderColor: colors.estrelas[3], backgroundColor: colors.estrelas[3] },
+      { label: '5 Estrelas', data: dadosQualidade['5_estrelas'], borderColor: colors.estrelas[4], backgroundColor: colors.estrelas[4] }
+    ];
+
+    // 2. Qualidade FB
+    new Chart(document.getElementById('chartQualidadeFB'), {
+      type: 'line',
+      data: { labels: anoData.labels_meses, datasets: buildEstrelasDatasets(anoData.qualidade_fb) },
+      options: { responsive: true, maintainAspectRatio: false, scales: commonScales }
+    });
+
+    // 3. Qualidade Org
+    new Chart(document.getElementById('chartQualidadeOrg'), {
+      type: 'line',
+      data: { labels: anoData.labels_meses, datasets: buildEstrelasDatasets(anoData.qualidade_org) },
+      options: { responsive: true, maintainAspectRatio: false, scales: commonScales }
+    });
+
+    // Função auxiliar para mapear as 13 linhas de perdas
+    const buildPerdasDatasets = (dadosPerdas) => dadosPerdas.map((motivo, index) => ({
+      label: motivo.label,
+      data: motivo.data,
+      borderColor: colors.perdas[index % colors.perdas.length],
+      backgroundColor: colors.perdas[index % colors.perdas.length],
+      borderWidth: 2
+    }));
+
+    // 4. Motivos Perda FB
+    new Chart(document.getElementById('chartPerdasFB'), {
+      type: 'line',
+      data: { labels: anoData.labels_meses, datasets: buildPerdasDatasets(anoData.perdas_fb) },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        scales: commonScales,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+      }
+    });
+
+    // 5. Motivos Perda Org
+    new Chart(document.getElementById('chartPerdasOrg'), {
+      type: 'line',
+      data: { labels: anoData.labels_meses, datasets: buildPerdasDatasets(anoData.perdas_org) },
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false, 
+        scales: commonScales,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+      }
+    });
+
+    // 6. Vendedores
+    new Chart(document.getElementById('chartVendedores'), {
+      type: 'line',
+      data: {
+        labels: anoData.labels_meses,
+        datasets: [
+          { label: 'Luan', data: anoData.vendedores.Luan, borderColor: colors.vendedores[0], backgroundColor: colors.vendedores[0], borderWidth: 3 },
+          { label: 'Luiz', data: anoData.vendedores.Luiz, borderColor: colors.vendedores[1], backgroundColor: colors.vendedores[1], borderWidth: 3 },
+          { label: 'Fernando', data: anoData.vendedores.Fernando, borderColor: colors.vendedores[2], backgroundColor: colors.vendedores[2], borderWidth: 3 },
+          { label: 'Karine', data: anoData.vendedores.Karine, borderColor: colors.vendedores[3], backgroundColor: colors.vendedores[3], borderWidth: 3 }
+        ]
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: commonScales }
+    });
+  </script>
+</body>
+</html>
