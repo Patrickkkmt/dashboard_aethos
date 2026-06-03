@@ -40,7 +40,37 @@ def dashboard():
     
     # Passa a variável 'dados_dashboard' com o nome 'dados' para o HTML
     return render_template("index.html", dados=dados_dashboard)
+# Rota escondida que o n8n vai chamar para injetar os dados
+@app.route('/webhook/visao-anual', methods=['POST'])
+def webhook_visao_anual():
+    dados_recebidos = request.json
+    
+    # Salva os dados num arquivo JSON local
+    with open('dados_anuais.json', 'w') as f:
+        json.dump(dados_recebidos, f)
+        
+    return {"status": "sucesso", "mensagem": "Dados anuais atualizados!"}, 200
 
+# Atualize a rota da página para ler o arquivo salvo
+@app.route('/visao-anual')
+def visao_anual():
+    try:
+        # Tenta ler o arquivo que o n8n salvou
+        with open('dados_anuais.json', 'r') as f:
+            dados_reais = json.load(f)
+    except FileNotFoundError:
+        # Se o n8n ainda não tiver mandado nada, usa aquele modelo vazio para não quebrar a página
+        dados_reais = {
+            "labels_meses": ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
+            "total_leads": {"facebook": [], "organico": [], "total": []},
+            "qualidade_fb": {"1_estrela": [], "2_estrelas": [], "3_estrelas": [], "4_estrelas": [], "5_estrelas": []},
+            "qualidade_org": {"1_estrela": [], "2_estrelas": [], "3_estrelas": [], "4_estrelas": [], "5_estrelas": []},
+            "perdas_fb": [],
+            "perdas_org": [],
+            "vendedores": {"Luan": [], "Luiz": [], "Fernando": [], "Karine": []}
+        }
+    
+    return render_template('visao_anual.html', dados_anuais=dados_reais)
 @app.route('/visao-anual')
 def visao_anual():
     # Por enquanto, vamos mandar um dicionário vazio apenas para a página abrir sem dar erro nos gráficos.
