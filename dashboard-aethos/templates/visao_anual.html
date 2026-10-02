@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Visão Anual{% endblock %}
+
+{% block header_icon %}
+<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+</svg>
+{% endblock %}
+
+{% block header_title %}Desempenho anual{% endblock %}
+
+{% block header_actions %}
+<div class="glass-badge hide-mobile">
+  <p class="glass-badge__label">Período</p>
+  <p id="badge-periodo" class="glass-badge__value"></p>
+</div>
+<a href="/" class="btn-glass" aria-label="Voltar ao dashboard mensal">
+  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+  </svg>
+  <span>Voltar ao mensal</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Indicadores do ano (preenchidos pelo visao_anual.js) -->
+<section class="container">
+  <div class="kpi-grid kpi-grid--4" id="kpi-strip"></div>
+</section>
+
+<main class="container charts-grid">
+
+  <!-- Total de leads -->
+  <article class="card span-2">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Volume mensal de leads</h2>
+        <p class="card__subtitle">Barras: Facebook Ads e Orgânico. Linha: total do mês.</p>
+      </div>
+    </div>
+    <div class="card__accent"></div>
+    <div class="chart-box" style="--h: 320px"><canvas id="chartTotalLeads"></canvas></div>
+  </article>
+
+  <!-- Qualidade FB -->
+  <article class="card">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Qualidade — Facebook Ads</h2>
+        <p class="card__subtitle">Leads por estrela em cada mês. Passe o mouse para ver a média.</p>
+      </div>
+    </div>
+    <div class="card__accent"></div>
+    <div class="chart-box" style="--h: 300px"><canvas id="chartQualidadeFB"></canvas></div>
+  </article>
+
+  <!-- Qualidade Orgânico -->
+  <article class="card">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Qualidade — Orgânico</h2>
+        <p class="card__subtitle">Leads por estrela em cada mês. Passe o mouse para ver a média.</p>
+      </div>
+    </div>
+    <div class="card__accent"></div>
+    <div class="chart-box" style="--h: 300px"><canvas id="chartQualidadeOrg"></canvas></div>
+  </article>
+
+  <!-- Perdas FB -->
+  <article class="card span-2">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Motivos de perda — Facebook Ads</h2>
+        <p class="card__subtitle">Quanto mais escura a célula, mais perdas naquele mês</p>
+      </div>
+      <div class="segmented" role="group" aria-label="Modo de exibição" data-alvo="perdas-fb">
+        <button type="button" class="is-active" data-modo="tabela">Tabela</button>
+        <button type="button" data-modo="grafico">Gráfico</button>
+      </div>
+    </div>
+    <div class="card__accent"></div>
+    <div id="perdas-fb-tabela" class="heatmap-wrap"></div>
+    <div id="perdas-fb-grafico" class="chart-box" style="--h: 360px" hidden><canvas id="chartPerdasFB"></canvas></div>
+  </article>
+
+  <!-- Perdas Orgânico -->
+  <article class="card span-2">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Motivos de perda — Orgânico</h2>
+        <p class="card__subtitle">Quanto mais escura a célula, mais perdas naquele mês</p>
+      </div>
+      <div class="segmented" role="group" aria-label="Modo de exibição" data-alvo="perdas-org">
+        <button type="button" class="is-active" data-modo="tabela">Tabela</button>
+        <button type="button" data-modo="grafico">Gráfico</button>
+      </div>
+    </div>
+    <div class="card__accent"></div>
+    <div id="perdas-org-tabela" class="heatmap-wrap"></div>
+    <div id="perdas-org-grafico" class="chart-box" style="--h: 360px" hidden><canvas id="chartPerdasOrg"></canvas></div>
+  </article>
+
+  <!-- Vendedores -->
+  <article class="card span-2">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Distribuição por vendedor</h2>
+        <p class="card__subtitle">Leads passados para o time em cada mês (total do ano na legenda)</p>
+      </div>
+    </div>
+    <div class="card__accent"></div>
+    <div class="chart-box" style="--h: 320px"><canvas id="chartVendedores"></canvas></div>
+  </article>
+
+</main>
+
+<!-- Dados enviados pelo Flask (lidos pelo visao_anual.js) -->
+<script id="dados-anual" type="application/json">{{ dados_anuais | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/visao_anual.js') }}"></script>
+{% endblock %}
