@@ -2,27 +2,12 @@
 
 {% block title %}Dashboard SDR{% endblock %}
 
-{% block header_icon %}
-<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.5l4-4 4 4 4-6 4 3" />
-  <path stroke-linecap="round" stroke-linejoin="round" d="M3 20h18M3 4h18" opacity=".3" />
-</svg>
-{% endblock %}
-
-{% block header_title %}Dashboard SDR{% endblock %}
-
-{% block header_actions %}
-<div class="glass-badge hide-mobile">
-  <p class="glass-badge__label">Ciclo atual</p>
-  <p id="badge-date" class="glass-badge__value"></p>
+{% block header_meta %}
+<div class="meta-badge">
+  <span class="meta-badge__label">Ciclo atual</span>
+  <span id="badge-date" class="meta-badge__value"></span>
 </div>
-<span class="live hide-mobile"><span class="live__dot"></span>Ao vivo</span>
-<a href="/visao-anual" class="btn-glass" aria-label="Ir para a visão anual">
-  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-  <span>Visão anual</span>
-</a>
+<span class="live"><span class="live__dot"></span>Ao vivo</span>
 {% endblock %}
 
 {% block content %}
@@ -30,6 +15,9 @@
 <section class="container">
   <div class="kpi-grid kpi-grid--6" id="kpi-strip"></div>
 </section>
+
+{% set titulo_analise = 'Análise do mês' %}
+{% include '_analise.html' %}
 
 <main class="container charts-grid">
 

@@ -47,14 +47,14 @@
   const melhorIdx = leads.total.indexOf(Math.max(...leads.total));
 
   Aethos.renderKpis(document.getElementById('kpi-strip'), [
-    { rotulo: 'Leads no ano', valor: num(totalAno), sub: `${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'} com dados`, cor: 'indigo' },
-    { rotulo: 'Facebook Ads', valor: num(fbAno), sub: `${pct(fbAno, totalAno)} do total`, cor: 'fb' },
-    { rotulo: 'Orgânico', valor: num(orgAno), sub: `${pct(orgAno, totalAno)} do total`, cor: 'org' },
+    { rotulo: 'Leads no ano', valor: num(totalAno), sub: `${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'} com dados`, cor: 'marinho' },
+    { rotulo: 'Facebook Ads', valor: num(fbAno), sub: `${pct(fbAno, totalAno)} do total`, cor: 'azul' },
+    { rotulo: 'Orgânico', valor: num(orgAno), sub: `${pct(orgAno, totalAno)} do total`, cor: 'verde' },
     {
       rotulo: 'Média mensal',
       valor: num(Math.round(totalAno / qtdMeses)),
       sub: totalAno ? `melhor mês: ${meses[melhorIdx]} (${num(leads.total[melhorIdx])})` : 'sem dados ainda',
-      cor: 'violet',
+      cor: 'marinho',
     },
   ]);
 
@@ -70,8 +70,8 @@
   const tooltipNome = (ctx) => ` ${ctx.dataset.nome}: ${num(ctx.parsed.y)}`;
 
   // Número dentro da barra empilhada — só aparece se a fatia tiver altura suficiente
-  const rotuloDentro = (maximo, cor = '#ffffff') => rotulo({
-    color: cor,
+  const rotuloDentro = (maximo) => rotulo({
+    color: (ctx) => Aethos.textoSobre(ctx.dataset.backgroundColor),
     anchor: 'center',
     align: 'center',
     font: { family: "'DM Mono', monospace", weight: '500', size: 10 },
@@ -243,7 +243,7 @@
         labels: meses,
         datasets: [
           serie('Facebook Ads', leads.fb, { backgroundColor: CORES.fb, stack: 'canais', order: 1, borderRadius: 3, maxBarThickness: 48, datalabels: rotuloDentro(maxTotal) }),
-          serie('Orgânico', leads.org, { backgroundColor: CORES.org, stack: 'canais', order: 1, borderRadius: 3, maxBarThickness: 48, datalabels: rotuloDentro(maxTotal, '#064e3b') }),
+          serie('Orgânico', leads.org, { backgroundColor: CORES.org, stack: 'canais', order: 1, borderRadius: 3, maxBarThickness: 48, datalabels: rotuloDentro(maxTotal) }),
           serieTotal(leads.total, true),
         ],
       },
@@ -279,8 +279,7 @@
               stack: 'qualidade',
               order: 1,
               maxBarThickness: 40,
-              // amarelo e verde-limão ficam mais legíveis com texto escuro
-              datalabels: rotuloDentro(maximo, i === 2 || i === 3 ? '#1e293b' : '#ffffff'),
+              datalabels: rotuloDentro(maximo),
             })),
             serieTotal(totaisMes, false),
           ],
@@ -354,7 +353,7 @@
 
     // ---- Motivos de perda: começa no modo tabela ----
     renderMapaCalor('perdas-fb-tabela', perdasFb, CORES.fb);
-    renderMapaCalor('perdas-org-tabela', perdasOrg, '#10b981');
+    renderMapaCalor('perdas-org-tabela', perdasOrg, CORES.orgCalor);
   }
 
   Aethos.aoCarregar(criarGraficos);

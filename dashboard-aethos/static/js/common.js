@@ -2,21 +2,26 @@
    common.js — utilidades usadas pelas duas páginas
    ========================================================= */
 const Aethos = (() => {
-  // ---------- Paleta ----------
+  // ---------- Paleta (identidade Aethos: marinho #1A2836 + verde #85C441) ----------
   const CORES = {
-    primaria: '#6366f1',
-    primariaEscura: '#4338ca',
-    fb: '#1877F2',
-    org: '#34d399',
-    orgTexto: '#059669',      // verde mais escuro, legível sobre fundo branco
-    texto: '#1e293b',
-    texto2: '#475569',
-    muted: '#94a3b8',
-    grade: '#f1f5f9',
-    estrelas: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'], // 1★ vermelho -> 5★ verde
-    vendedores: ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#0ea5e9'],
-    perdas: ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981',
-             '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6'],
+    primaria: '#1A2836',        // azul-marinho Aethos
+    primariaEscura: '#1A2836',
+    verde: '#85C441',           // verde Aethos
+    verdeEscuro: '#4E8A1E',     // verde para texto sobre fundo branco
+    fb: '#2F6FB0',              // Facebook Ads
+    org: '#85C441',             // Orgânico
+    orgTexto: '#4E8A1E',
+    orgCalor: '#5E9A2C',        // verde do mapa de calor (texto branco legível)
+    vermelho: '#E5484D',
+    ambar: '#F2A93B',
+    texto: '#1A2836',
+    texto2: '#4A5A6A',
+    muted: '#8A97A6',
+    grade: '#EEF2F6',
+    estrelas: ['#E5484D', '#F2994A', '#F2C94C', '#B5D86F', '#85C441'], // 1★ vermelho -> 5★ verde Aethos
+    vendedores: ['#1A2836', '#85C441', '#2F6FB0', '#F2A93B', '#7A6FB8', '#3FA7A3'],
+    perdas: ['#1A2836', '#85C441', '#2F6FB0', '#E5484D', '#F2A93B', '#3FA7A3', '#7A6FB8',
+             '#B5D86F', '#5B7A99', '#F2C94C', '#C2363B', '#4E8A1E', '#9AA9B8'],
   };
 
   // ---------- Números ----------
@@ -36,6 +41,19 @@ const Aethos = (() => {
     const h = hex.replace('#', '');
     const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
     return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+  };
+
+  // Cor do texto que fica legível sobre um fundo (marinho em fundos claros, branco em escuros)
+  const textoSobre = (hex) => {
+    if (typeof hex !== 'string' || !hex.startsWith('#')) return '#ffffff';
+    const h = hex.replace('#', '');
+    const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+    const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+      const c = v / 255;
+      return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    const luminancia = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminancia > 0.35 ? CORES.texto : '#ffffff';
   };
 
   // ---------- Dados injetados pelo Flask ----------
@@ -73,7 +91,7 @@ const Aethos = (() => {
     d.plugins.legend.labels.color = CORES.texto2;
 
     const t = d.plugins.tooltip;
-    t.backgroundColor = '#1e293b';
+    t.backgroundColor = CORES.primaria;
     t.titleColor = '#f8fafc';
     t.bodyColor = '#cbd5e1';
     t.footerColor = '#f8fafc';
@@ -145,7 +163,7 @@ const Aethos = (() => {
   }
 
   return {
-    CORES, PLUGINS, num, soma, pct, paraNumeros, escapeHtml, hexToRgba,
+    CORES, PLUGINS, num, soma, pct, paraNumeros, escapeHtml, hexToRgba, textoSobre,
     lerDados, configurarChartJs, rotulo, pluginTextoCentral,
     renderKpis, renderLegenda, preencherRodape, aoCarregar,
   };

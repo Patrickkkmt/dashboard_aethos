@@ -34,12 +34,12 @@
   // 2. KPIs
   // ---------------------------------------------------------
   Aethos.renderKpis(document.getElementById('kpi-strip'), [
-    { rotulo: 'Total de leads', valor: num(totalLeads), sub: 'base do funil', cor: 'indigo' },
-    { rotulo: 'Em contato', valor: num(emContato), sub: `${pct(emContato, totalLeads)} dos leads`, cor: 'blue' },
-    { rotulo: 'Perdidos', valor: num(perdidos), sub: `${pct(perdidos, totalLeads)} dos leads`, cor: 'rose' },
-    { rotulo: 'Reuniões agendadas', valor: num(reunioes), sub: `${num(Math.max(reunioes - noshow, 0))} sem no-show`, cor: 'emerald' },
-    { rotulo: 'No-show', valor: num(noshow), sub: `${pct(noshow, reunioes)} das reuniões`, cor: 'amber' },
-    { rotulo: 'Taxa de conversão', valor: pct(reunioes, totalLeads), sub: 'reuniões ÷ leads', cor: 'violet' },
+    { rotulo: 'Total de leads', valor: num(totalLeads), sub: 'base do funil', cor: 'marinho' },
+    { rotulo: 'Em contato', valor: num(emContato), sub: `${pct(emContato, totalLeads)} dos leads`, cor: 'azul' },
+    { rotulo: 'Perdidos', valor: num(perdidos), sub: `${pct(perdidos, totalLeads)} dos leads`, cor: 'vermelho' },
+    { rotulo: 'Reuniões agendadas', valor: num(reunioes), sub: `${num(Math.max(reunioes - noshow, 0))} sem no-show`, cor: 'verde' },
+    { rotulo: 'No-show', valor: num(noshow), sub: `${pct(noshow, reunioes)} das reuniões`, cor: 'ambar' },
+    { rotulo: 'Taxa de conversão', valor: pct(reunioes, totalLeads), sub: 'reuniões ÷ leads', cor: 'marinho' },
   ]);
   document.getElementById('pill-total-leads').textContent = num(totalLeads);
 
@@ -48,11 +48,11 @@
   // ---------------------------------------------------------
   const corEtapa = (label) => {
     const l = label.toLowerCase();
-    if (l.includes('no-show') || l.includes('no show')) return '#f59e0b';
-    if (l.includes('reuni')) return '#10b981';
-    if (l.includes('sob controle')) return '#fda4af';
-    if (l.includes('perdid')) return '#f43f5e';
-    if (l.includes('contato')) return '#3b82f6';
+    if (l.includes('no-show') || l.includes('no show')) return CORES.ambar;
+    if (l.includes('reuni')) return CORES.verde;
+    if (l.includes('sob controle')) return '#F4A6A8';
+    if (l.includes('perdid')) return CORES.vermelho;
+    if (l.includes('contato')) return CORES.fb;
     return CORES.primaria;
   };
 
@@ -188,7 +188,7 @@
             callbacks: { label: (ctx) => ` ${ctx.label}: ${num(ctx.parsed)} leads (${pct(ctx.parsed, totalOrig)})` },
           },
           datalabels: rotulo({
-            color: '#ffffff',
+            color: (ctx) => Aethos.textoSobre(coresOrigem[ctx.dataIndex]),
             textAlign: 'center',
             font: { family: "'DM Mono', monospace", weight: '500', size: 12 },
             display: (ctx) => totalOrig > 0 && ctx.dataset.data[ctx.dataIndex] / totalOrig >= 0.07,

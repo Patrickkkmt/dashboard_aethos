@@ -2,25 +2,11 @@
 
 {% block title %}Visão Anual{% endblock %}
 
-{% block header_icon %}
-<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-</svg>
-{% endblock %}
-
-{% block header_title %}Desempenho anual{% endblock %}
-
-{% block header_actions %}
-<div class="glass-badge hide-mobile">
-  <p class="glass-badge__label">Período</p>
-  <p id="badge-periodo" class="glass-badge__value"></p>
+{% block header_meta %}
+<div class="meta-badge">
+  <span class="meta-badge__label">Período</span>
+  <span id="badge-periodo" class="meta-badge__value"></span>
 </div>
-<a href="/" class="btn-glass" aria-label="Voltar ao dashboard mensal">
-  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-  </svg>
-  <span>Voltar ao mensal</span>
-</a>
 {% endblock %}
 
 {% block content %}
@@ -28,6 +14,9 @@
 <section class="container">
   <div class="kpi-grid kpi-grid--4" id="kpi-strip"></div>
 </section>
+
+{% set titulo_analise = 'Análise do ano' %}
+{% include '_analise.html' %}
 
 <main class="container charts-grid">
 

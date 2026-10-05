@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Dashboard SDR{% endblock %} · Aethos Sistemas</title>
+  <meta name="theme-color" content="#1A2836" />
+
+  <!-- Ícone da Aethos (o mesmo do site oficial) -->
+  <link rel="icon" href="{{ logo_url }}" />
 
   <!-- Fontes -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,23 +18,31 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 
-<body class="{% block body_class %}{% endblock %}">
+<body>
 
   <!-- ═══════════════ CABEÇALHO ═══════════════ -->
   <header class="header">
     <div class="container header__inner">
-      <div class="brand">
-        <div class="brand__icon" aria-hidden="true">{% block header_icon %}{% endblock %}</div>
-        <div>
-          <p class="brand__company">Aethos Sistemas</p>
-          <h1 class="brand__title">{% block header_title %}Dashboard SDR{% endblock %}</h1>
-        </div>
-      </div>
-      <nav class="header__actions">
-        {% block header_actions %}{% endblock %}
+
+      <a class="brand" href="/" aria-label="Dashboard SDR Aethos Sistemas">
+        <span class="brand__mark">
+          <img src="{{ logo_url }}" alt="" width="40" height="40" onerror="this.parentElement.classList.add('is-fallback'); this.remove();" />
+        </span>
+        <span class="brand__text">
+          <span class="brand__company">Aethos <strong>Sistemas</strong></span>
+          <span class="brand__title">Dashboard SDR</span>
+        </span>
+      </a>
+
+      <nav class="tabs" aria-label="Páginas do painel">
+        <a href="/" class="tabs__item {% if pagina == 'mensal' %}is-active{% endif %}" {% if pagina == 'mensal' %}aria-current="page"{% endif %}>Mensal</a>
+        <a href="/visao-anual" class="tabs__item {% if pagina == 'anual' %}is-active{% endif %}" {% if pagina == 'anual' %}aria-current="page"{% endif %}>Anual</a>
       </nav>
+
+      <div class="header__meta">
+        {% block header_meta %}{% endblock %}
+      </div>
     </div>
-    <div class="header__line"></div>
   </header>
 
   <!-- ═══════════════ CONTEÚDO ═══════════════ -->
