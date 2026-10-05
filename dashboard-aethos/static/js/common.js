@@ -138,6 +138,10 @@ const Aethos = (() => {
         <p class="kpi__label">${escapeHtml(k.rotulo)}</p>
         <p class="kpi__value">${escapeHtml(k.valor)}</p>
         ${k.sub ? `<p class="kpi__sub">${escapeHtml(k.sub)}</p>` : ''}
+        ${k.delta ? `<p class="kpi__delta kpi__delta--${k.delta.tipo}" title="${escapeHtml(k.delta.titulo || '')}">
+          <span class="kpi__seta">${k.delta.tipo === 'sobe' ? '▲' : k.delta.tipo === 'desce' ? '▼' : '■'}</span>
+          ${escapeHtml(k.delta.texto)} <span class="kpi__detalhe">${escapeHtml(k.delta.detalhe || '')}</span>
+        </p>` : ''}
         <div class="kpi__bar"></div>
       </div>`).join('');
   }
@@ -168,3 +172,6 @@ const Aethos = (() => {
     renderKpis, renderLegenda, preencherRodape, aoCarregar,
   };
 })();
+
+// O ano do rodapé é preenchido em todas as páginas, mesmo sem dados
+Aethos.preencherRodape();

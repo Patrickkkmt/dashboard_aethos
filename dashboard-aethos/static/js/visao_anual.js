@@ -7,7 +7,8 @@
   Aethos.preencherRodape();
 
   const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  const bruto = Aethos.lerDados('dados-anual') || {};
+  const bruto = Aethos.lerDados('dados-anual');
+  if (!bruto) return;
 
   // ---------------------------------------------------------
   // 1. PREPARA OS DADOS — corta os meses futuros (sem leads)
@@ -38,8 +39,6 @@
   // ---------------------------------------------------------
   // 2. CABEÇALHO E KPIs
   // ---------------------------------------------------------
-  document.getElementById('badge-periodo').textContent =
-    `${meses[0]}${meses.length > 1 ? ` a ${meses[meses.length - 1]}` : ''} ${new Date().getFullYear()}`;
 
   const totalAno = soma(leads.total);
   const fbAno = soma(leads.fb);
@@ -47,7 +46,7 @@
   const melhorIdx = leads.total.indexOf(Math.max(...leads.total));
 
   Aethos.renderKpis(document.getElementById('kpi-strip'), [
-    { rotulo: 'Leads no ano', valor: num(totalAno), sub: `${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'} com dados`, cor: 'marinho' },
+    { rotulo: 'Leads no ano', valor: num(totalAno), sub: `${meses[0]}${meses.length > 1 ? ` a ${meses[meses.length - 1]}` : ''} · ${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'}`, cor: 'marinho' },
     { rotulo: 'Facebook Ads', valor: num(fbAno), sub: `${pct(fbAno, totalAno)} do total`, cor: 'azul' },
     { rotulo: 'Orgânico', valor: num(orgAno), sub: `${pct(orgAno, totalAno)} do total`, cor: 'verde' },
     {

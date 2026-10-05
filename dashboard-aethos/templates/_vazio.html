@@ -1,0 +1,15 @@
+{# Mostrado no lugar dos gráficos enquanto o n8n ainda não enviou dados #}
+<main class="container">
+  <article class="card vazio">
+    <span class="vazio__icone" aria-hidden="true">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+      </svg>
+    </span>
+    <h2 class="vazio__titulo">Aguardando dados</h2>
+    <p class="vazio__texto">
+      Os números chegam pelo n8n. Assim que o próximo envio acontecer, {{ descricao_vazio }} aparecem aqui.
+    </p>
+    <p class="vazio__dica">Isso é normal logo depois de uma atualização do site. Para não esperar, rode o fluxo manualmente no n8n.</p>
+  </article>
+</main>

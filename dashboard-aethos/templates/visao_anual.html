@@ -3,13 +3,11 @@
 {% block title %}Visão Anual{% endblock %}
 
 {% block header_meta %}
-<div class="meta-badge">
-  <span class="meta-badge__label">Período</span>
-  <span id="badge-periodo" class="meta-badge__value"></span>
-</div>
+{% include '_status.html' %}
 {% endblock %}
 
 {% block content %}
+{% if tem_dados %}
 <!-- Indicadores do ano (preenchidos pelo visao_anual.js) -->
 <section class="container">
   <div class="kpi-grid kpi-grid--4" id="kpi-strip"></div>
@@ -106,8 +104,14 @@
 
 <!-- Dados enviados pelo Flask (lidos pelo visao_anual.js) -->
 <script id="dados-anual" type="application/json">{{ dados_anuais | tojson }}</script>
+{% else %}
+{% set descricao_vazio = 'os gráficos do ano' %}
+{% include '_vazio.html' %}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if tem_dados %}
 <script src="{{ url_for('static', filename='js/visao_anual.js') }}"></script>
+{% endif %}
 {% endblock %}

@@ -3,14 +3,11 @@
 {% block title %}Dashboard SDR{% endblock %}
 
 {% block header_meta %}
-<div class="meta-badge">
-  <span class="meta-badge__label">Ciclo atual</span>
-  <span id="badge-date" class="meta-badge__value"></span>
-</div>
-<span class="live"><span class="live__dot"></span>Ao vivo</span>
+{% include '_status.html' %}
 {% endblock %}
 
 {% block content %}
+{% if tem_dados %}
 <!-- Indicadores principais (preenchidos pelo dashboard.js) -->
 <section class="container">
   <div class="kpi-grid kpi-grid--6" id="kpi-strip"></div>
@@ -89,8 +86,15 @@
 
 <!-- Dados enviados pelo Flask (lidos pelo dashboard.js) -->
 <script id="dados-mensal" type="application/json">{{ dados | tojson }}</script>
+<script id="comparativo" type="application/json">{{ comparativo | tojson }}</script>
+{% else %}
+{% set descricao_vazio = 'os indicadores e gráficos do mês' %}
+{% include '_vazio.html' %}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if tem_dados %}
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endif %}
 {% endblock %}

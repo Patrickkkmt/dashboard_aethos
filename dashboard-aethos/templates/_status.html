@@ -1,0 +1,8 @@
+{# Selo do cabeçalho: quando o n8n enviou os dados pela última vez #}
+<div class="status status--{{ status.estado }}" title="Último envio do n8n: {{ status.valor }}">
+  <span class="status__dot" aria-hidden="true"></span>
+  <span class="status__text">
+    <span class="status__rotulo">{{ status.rotulo }}</span>
+    <span class="status__valor">{{ status.valor }}</span>
+  </span>
+</div>

@@ -15,6 +15,7 @@ Segurança opcional: se a variável de ambiente WEBHOOK_TOKEN existir no Render,
 os webhooks passam a exigir o header  X-Webhook-Token: <mesmo valor>.
 Sem a variável, tudo funciona como antes.
 """
+import calendar
 import hmac
 import json
 import os
@@ -29,6 +30,9 @@ ARQUIVO_MENSAL = BASE_DIR / "dados.json"
 ARQUIVO_ANUAL = BASE_DIR / "dados_anuais.json"
 ARQUIVO_ANALISE_MENSAL = BASE_DIR / "analise_mensal.json"
 ARQUIVO_ANALISE_ANUAL = BASE_DIR / "analise_anual.json"
+ARQUIVO_ATUALIZACOES = BASE_DIR / "atualizacoes.json"   # horário de cada envio do n8n
+HORAS_PARA_DESATUALIZADO = 26                           # depois disso o selo fica laranja
+MESES_ABREV = ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."]
 FUSO_BRASILIA = timezone(timedelta(hours=-3))
 WEBHOOK_TOKEN = os.environ.get("WEBHOOK_TOKEN", "").strip()
 
@@ -100,7 +104,14 @@ def token_valido() -> bool:
     return hmac.compare_digest(enviado, WEBHOOK_TOKEN)
 
 
-def receber_webhook(caminho: Path, mensagem_ok: str):
+def registrar_atualizacao(chave: str) -> None:
+    """Guarda o horário (UTC) em que o n8n enviou os dados de 'mensal' ou 'anual'."""
+    registro = ler_json(ARQUIVO_ATUALIZACOES, {})
+    registro[chave] = datetime.now(timezone.utc).isoformat()
+    salvar_json(ARQUIVO_ATUALIZACOES, registro)
+
+
+def receber_webhook(caminho: Path, mensagem_ok: str, chave: str):
     if not token_valido():
         return jsonify({"erro": "Token inválido ou ausente (header X-Webhook-Token)"}), 401
 
@@ -112,6 +123,7 @@ def receber_webhook(caminho: Path, mensagem_ok: str):
 
     try:
         salvar_json(caminho, dados)
+        registrar_atualizacao(chave)
     except Exception as e:  # devolve o erro exato para o n8n
         return jsonify({"erro_interno": str(e)}), 500
 
@@ -175,21 +187,105 @@ def receber_analise(caminho: Path):
     return jsonify({"status": "sucesso", "mensagem": "Análise gravada!", "analise": analise}), 200
 
 
+def tempo_relativo(delta: timedelta) -> str:
+    minutos = int(delta.total_seconds() // 60)
+    if minutos < 1:
+        return "agora"
+    if minutos < 60:
+        return f"há {minutos} min"
+    horas = minutos // 60
+    if horas < 24:
+        return f"há {horas} h"
+    dias = horas // 24
+    return f"há {dias} dia" if dias == 1 else f"há {dias} dias"
+
+
+def status_atualizacao(chave: str, arquivo: Path) -> dict:
+    """
+    Monta o selo do cabeçalho:
+      ok           -> verde   "Atualizado há 2 h"
+      antigo       -> laranja "Desatualizado · há 3 dias"
+      vazio        -> cinza   "Aguardando dados"
+      sem_registro -> verde   dados existem, mas chegaram antes deste recurso existir
+    """
+    if not arquivo.exists():
+        return {"estado": "vazio", "rotulo": "Aguardando dados", "valor": "sem envio do n8n", "momento": None}
+
+    iso = ler_json(ARQUIVO_ATUALIZACOES, {}).get(chave)
+    if not iso:
+        return {"estado": "sem_registro", "rotulo": "Dados carregados", "valor": "horário não registrado", "momento": None}
+
+    momento = datetime.fromisoformat(iso)
+    delta = datetime.now(timezone.utc) - momento
+    local = momento.astimezone(FUSO_BRASILIA)
+    valor = local.strftime("%d/%m às %H:%M")
+    if delta > timedelta(hours=HORAS_PARA_DESATUALIZADO):
+        return {"estado": "antigo", "rotulo": f"Desatualizado · {tempo_relativo(delta)}", "valor": valor, "momento": local}
+    return {"estado": "ok", "rotulo": f"Atualizado {tempo_relativo(delta)}", "valor": valor, "momento": local}
+
+
+def comparativo_mes_anterior(momento_dados):
+    """
+    Pega o mês anterior na visão anual para comparar com o mês atual.
+    O mês atual ainda está em andamento, então o JS compara a PROJEÇÃO do mês
+    (ritmo diário até o dia do último envio) com o total fechado do mês anterior.
+    """
+    anual = ler_json(ARQUIVO_ANUAL, None)
+    if not anual:
+        return None
+
+    referencia = momento_dados or datetime.now(FUSO_BRASILIA)
+    indice_anterior = referencia.month - 2          # janeiro não tem anterior no mesmo ano
+    if indice_anterior < 0:
+        return None
+
+    def valor(lista, i):
+        try:
+            return float(lista[i] or 0)
+        except (IndexError, TypeError, ValueError):
+            return 0.0
+
+    leads = valor((anual.get("total_leads") or {}).get("total") or [], indice_anterior)
+    reunioes = sum(valor(v, indice_anterior) for v in (anual.get("vendedores") or {}).values())
+    if not leads:
+        return None
+
+    return {
+        "mes_anterior": MESES_ABREV[indice_anterior],
+        "leads": leads,
+        "reunioes": reunioes,
+        "dia": referencia.day,
+        "dias_no_mes": calendar.monthrange(referencia.year, referencia.month)[1],
+    }
+
+
 # =========================================================
 # PÁGINAS
 # =========================================================
 @app.route("/")
 def dashboard():
-    dados = ler_json(ARQUIVO_MENSAL, FALLBACK_MENSAL)
-    analise = ler_json(ARQUIVO_ANALISE_MENSAL, None)
-    return render_template("index.html", dados=dados, analise=analise, pagina="mensal")
+    status = status_atualizacao("mensal", ARQUIVO_MENSAL)
+    return render_template(
+        "index.html",
+        pagina="mensal",
+        tem_dados=ARQUIVO_MENSAL.exists(),
+        dados=ler_json(ARQUIVO_MENSAL, FALLBACK_MENSAL),
+        analise=ler_json(ARQUIVO_ANALISE_MENSAL, None),
+        status=status,
+        comparativo=comparativo_mes_anterior(status["momento"]),
+    )
 
 
 @app.route("/visao-anual")
 def visao_anual():
-    dados = ler_json(ARQUIVO_ANUAL, FALLBACK_ANUAL)
-    analise = ler_json(ARQUIVO_ANALISE_ANUAL, None)
-    return render_template("visao_anual.html", dados_anuais=dados, analise=analise, pagina="anual")
+    return render_template(
+        "visao_anual.html",
+        pagina="anual",
+        tem_dados=ARQUIVO_ANUAL.exists(),
+        dados_anuais=ler_json(ARQUIVO_ANUAL, FALLBACK_ANUAL),
+        analise=ler_json(ARQUIVO_ANALISE_ANUAL, None),
+        status=status_atualizacao("anual", ARQUIVO_ANUAL),
+    )
 
 
 @app.route("/health")
@@ -203,12 +299,12 @@ def health():
 # =========================================================
 @app.route("/atualizar-dados", methods=["POST"])
 def atualizar_dados():
-    return receber_webhook(ARQUIVO_MENSAL, "Dados gravados!")
+    return receber_webhook(ARQUIVO_MENSAL, "Dados gravados!", "mensal")
 
 
 @app.route("/webhook/visao-anual", methods=["POST"])
 def webhook_visao_anual():
-    return receber_webhook(ARQUIVO_ANUAL, "Dados anuais gravados!")
+    return receber_webhook(ARQUIVO_ANUAL, "Dados anuais gravados!", "anual")
 
 
 @app.route("/webhook/analise-mensal", methods=["POST"])

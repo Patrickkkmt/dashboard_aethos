@@ -9,9 +9,6 @@
   const dados = Aethos.lerDados('dados-mensal');
   if (!dados) return;
 
-  // Badge com a data de hoje
-  document.getElementById('badge-date').textContent =
-    new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 
   // ---------------------------------------------------------
   // 1. FUNIL — busca cada etapa pelo nome (se a ordem mudar no n8n, continua certo)
@@ -31,20 +28,65 @@
   const noshow = etapa('no-show', 5);
 
   // ---------------------------------------------------------
-  // 2. KPIs
+  // 2. COMPARAÇÃO COM O MÊS ANTERIOR
+  //    O mês atual ainda não fechou: comparamos a PROJEÇÃO do mês
+  //    (ritmo por dia × dias do mês) com o total do mês anterior.
+  // ---------------------------------------------------------
+  const comp = Aethos.lerDados('comparativo');
+  const podeComparar = comp && comp.dia >= 3; // com 1 ou 2 dias a projeção ainda é instável
+  const projetar = (valorAtual) => Math.round((valorAtual / comp.dia) * comp.dias_no_mes);
+
+  const variacao = (atual, anterior) => {
+    if (!anterior) return null;
+    const v = ((atual - anterior) / anterior) * 100;
+    const tipo = Math.abs(v) < 1 ? 'neutro' : v > 0 ? 'sobe' : 'desce';
+    return { tipo, texto: `${Math.abs(v).toFixed(0)}% vs ${comp.mes_anterior}` };
+  };
+
+  const deltaProjetado = (valorAtual, anterior, nome) => {
+    if (!podeComparar) return null;
+    const projecao = projetar(valorAtual);
+    const v = variacao(projecao, anterior);
+    if (!v) return null;
+    return {
+      ...v,
+      detalhe: `projeção do mês: ${num(projecao)}`,
+      titulo: `No ritmo atual, o mês deve fechar com ${num(projecao)} ${nome}. ` +
+              `Em ${comp.mes_anterior} foram ${num(anterior)}.`,
+    };
+  };
+
+  let deltaTaxa = null;
+  if (podeComparar && comp.leads) {
+    const taxaAtual = totalLeads ? (reunioes / totalLeads) * 100 : 0;
+    const taxaAnterior = (comp.reunioes / comp.leads) * 100;
+    const pp = taxaAtual - taxaAnterior;
+    deltaTaxa = {
+      tipo: Math.abs(pp) < 0.5 ? 'neutro' : pp > 0 ? 'sobe' : 'desce',
+      texto: `${Math.abs(pp).toFixed(1).replace('.', ',')} p.p. vs ${comp.mes_anterior}`,
+      detalhe: '',
+      titulo: `Em ${comp.mes_anterior} a taxa foi ${taxaAnterior.toFixed(1).replace('.', ',')}%.`,
+    };
+  }
+
+  // ---------------------------------------------------------
+  // 3. KPIs
   // ---------------------------------------------------------
   Aethos.renderKpis(document.getElementById('kpi-strip'), [
-    { rotulo: 'Total de leads', valor: num(totalLeads), sub: 'base do funil', cor: 'marinho' },
+    { rotulo: 'Total de leads', valor: num(totalLeads), sub: 'base do funil', cor: 'marinho',
+      delta: deltaProjetado(totalLeads, comp?.leads, 'leads') },
     { rotulo: 'Em contato', valor: num(emContato), sub: `${pct(emContato, totalLeads)} dos leads`, cor: 'azul' },
     { rotulo: 'Perdidos', valor: num(perdidos), sub: `${pct(perdidos, totalLeads)} dos leads`, cor: 'vermelho' },
-    { rotulo: 'Reuniões agendadas', valor: num(reunioes), sub: `${num(Math.max(reunioes - noshow, 0))} sem no-show`, cor: 'verde' },
+    { rotulo: 'Reuniões agendadas', valor: num(reunioes), sub: `${num(Math.max(reunioes - noshow, 0))} sem no-show`, cor: 'verde',
+      delta: deltaProjetado(reunioes, comp?.reunioes, 'reuniões') },
     { rotulo: 'No-show', valor: num(noshow), sub: `${pct(noshow, reunioes)} das reuniões`, cor: 'ambar' },
-    { rotulo: 'Taxa de conversão', valor: pct(reunioes, totalLeads), sub: 'reuniões ÷ leads', cor: 'marinho' },
+    { rotulo: 'Taxa de conversão', valor: pct(reunioes, totalLeads), sub: 'reuniões ÷ leads', cor: 'marinho',
+      delta: deltaTaxa },
   ]);
   document.getElementById('pill-total-leads').textContent = num(totalLeads);
 
   // ---------------------------------------------------------
-  // 3. GRÁFICOS
+  // 4. GRÁFICOS
   // ---------------------------------------------------------
   const corEtapa = (label) => {
     const l = label.toLowerCase();
