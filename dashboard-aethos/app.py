@@ -2,14 +2,18 @@
 Dashboard SDR · Aethos Sistemas
 --------------------------------
 Páginas:
-    /               -> dashboard do mês atual
-    /visao-anual    -> consolidado do ano
+    /                       -> dashboard do mês (filtro: /?mes=2025-03)
+    /visao-anual            -> consolidado do ano (filtro: /visao-anual?ano=2025)
 
 Webhooks (o n8n envia os dados para cá):
-    POST /atualizar-dados          -> grava dados.json            (números do mês)
-    POST /webhook/visao-anual      -> grava dados_anuais.json     (números do ano)
+    POST /atualizar-dados          -> grava dados.json            ({"meses": {"2026-11": {...}, ...}})
+    POST /webhook/visao-anual      -> grava dados_anuais.json     ({"anos": {"2026": {...}, ...}})
     POST /webhook/analise-mensal   -> grava analise_mensal.json   (texto da IA no mensal)
     POST /webhook/analise-anual    -> grava analise_anual.json    (texto da IA no anual)
+
+Botão "Atualizar agora" (qualquer pessoa no site pode apertar):
+    POST /api/atualizar   -> chama o Webhook do n8n (variável N8N_ATUALIZAR_URL no Render)
+    GET  /api/status      -> horário do último envio de cada página (o botão espera ele mudar)
 
 Segurança opcional: se a variável de ambiente WEBHOOK_TOKEN existir no Render,
 os webhooks passam a exigir o header  X-Webhook-Token: <mesmo valor>.
@@ -20,6 +24,8 @@ import hmac
 import json
 import os
 import re
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -32,9 +38,17 @@ ARQUIVO_ANALISE_MENSAL = BASE_DIR / "analise_mensal.json"
 ARQUIVO_ANALISE_ANUAL = BASE_DIR / "analise_anual.json"
 ARQUIVO_ATUALIZACOES = BASE_DIR / "atualizacoes.json"   # horário de cada envio do n8n
 HORAS_PARA_DESATUALIZADO = 26                           # depois disso o selo fica laranja
+MESES_NOMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+               "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 MESES_ABREV = ["jan.", "fev.", "mar.", "abr.", "mai.", "jun.", "jul.", "ago.", "set.", "out.", "nov.", "dez."]
 FUSO_BRASILIA = timezone(timedelta(hours=-3))
 WEBHOOK_TOKEN = os.environ.get("WEBHOOK_TOKEN", "").strip()
+
+# Botão "Atualizar agora": URL do Webhook (Production URL) do n8n que roda os fluxos.
+# Se o mensal e o anual estiverem em workflows separados, coloque as duas URLs separadas por vírgula.
+N8N_ATUALIZAR_URLS = [u.strip() for u in os.environ.get("N8N_ATUALIZAR_URL", "").split(",") if u.strip()]
+ARQUIVO_PEDIDO = BASE_DIR / "ultimo_pedido.json"   # quando o botão foi apertado pela última vez
+SEGUNDOS_ENTRE_PEDIDOS = 120                        # evita que vários cliques rodem o n8n em sequência
 
 app = Flask(__name__)
 
@@ -109,25 +123,6 @@ def registrar_atualizacao(chave: str) -> None:
     registro = ler_json(ARQUIVO_ATUALIZACOES, {})
     registro[chave] = datetime.now(timezone.utc).isoformat()
     salvar_json(ARQUIVO_ATUALIZACOES, registro)
-
-
-def receber_webhook(caminho: Path, mensagem_ok: str, chave: str):
-    if not token_valido():
-        return jsonify({"erro": "Token inválido ou ausente (header X-Webhook-Token)"}), 401
-
-    # force=True: aceita o pacote mesmo se o n8n não mandar o Content-Type certo
-    # silent=True: JSON inválido vira None em vez de estourar uma página de erro HTML
-    dados = request.get_json(force=True, silent=True)
-    if not dados:
-        return jsonify({"erro": "Nenhum dado enviado ou JSON inválido"}), 400
-
-    try:
-        salvar_json(caminho, dados)
-        registrar_atualizacao(chave)
-    except Exception as e:  # devolve o erro exato para o n8n
-        return jsonify({"erro_interno": str(e)}), 500
-
-    return jsonify({"status": "sucesso", "mensagem": mensagem_ok}), 200
 
 
 def normalizar_analise(pacote):
@@ -224,39 +219,148 @@ def status_atualizacao(chave: str, arquivo: Path) -> dict:
     return {"estado": "ok", "rotulo": f"Atualizado {tempo_relativo(delta)}", "valor": valor, "momento": local}
 
 
-def comparativo_mes_anterior(momento_dados):
+# =========================================================
+# VÁRIOS MESES E VÁRIOS ANOS
+# =========================================================
+def chave_do_mes(data: datetime) -> str:
+    return f"{data.year}-{data.month:02d}"
+
+
+def titulo_do_mes(chave: str) -> str:
+    ano, mes = chave.split("-")
+    return f"{MESES_NOMES[int(mes) - 1]} {ano}"
+
+
+def pacote_mensal() -> dict:
     """
-    Pega o mês anterior na visão anual para comparar com o mês atual.
-    O mês atual ainda está em andamento, então o JS compara a PROJEÇÃO do mês
-    (ritmo diário até o dia do último envio) com o total fechado do mês anterior.
+    Devolve {"meses": {"2026-11": {...}, ...}, "mes_atual": "2026-11"}.
+    Aceita também o formato antigo (um mês só, com "funnel" na raiz):
+    ele vira o mês atual, até o n8n novo enviar todos os meses.
     """
-    anual = ler_json(ARQUIVO_ANUAL, None)
-    if not anual:
+    bruto = ler_json(ARQUIVO_MENSAL, None)
+    if not isinstance(bruto, dict):
+        return {"meses": {}, "mes_atual": None}
+    if isinstance(bruto.get("meses"), dict):
+        meses = {k: v for k, v in bruto["meses"].items() if re.fullmatch(r"\d{4}-\d{2}", k) and isinstance(v, dict)}
+        return {"meses": meses, "mes_atual": bruto.get("mes_atual")}
+    if "funnel" in bruto:
+        chave = chave_do_mes(datetime.now(FUSO_BRASILIA))
+        return {"meses": {chave: bruto}, "mes_atual": chave}
+    return {"meses": {}, "mes_atual": None}
+
+
+def pacote_anual() -> dict:
+    """Devolve {"anos": {"2026": {...}, ...}, "ano_atual": "2026"} (aceita o formato antigo de um ano só)."""
+    bruto = ler_json(ARQUIVO_ANUAL, None)
+    if not isinstance(bruto, dict):
+        return {"anos": {}, "ano_atual": None}
+    if isinstance(bruto.get("anos"), dict):
+        anos = {str(k): v for k, v in bruto["anos"].items() if re.fullmatch(r"\d{4}", str(k)) and isinstance(v, dict)}
+        return {"anos": anos, "ano_atual": str(bruto.get("ano_atual") or "")}
+    if "total_leads" in bruto:
+        ano = str(datetime.now(FUSO_BRASILIA).year)
+        return {"anos": {ano: bruto}, "ano_atual": ano}
+    return {"anos": {}, "ano_atual": None}
+
+
+def escolher(pedido, disponiveis, padrao):
+    """Usa o período pedido na URL; se não existir, o atual; senão, o mais recente."""
+    if pedido in disponiveis:
+        return pedido
+    if padrao in disponiveis:
+        return padrao
+    return max(disponiveis) if disponiveis else None
+
+
+def opcoes_de_meses(meses: dict) -> list:
+    """Lista para o filtro, do mais recente para o mais antigo, agrupada por ano."""
+    grupos = {}
+    for chave in sorted(meses, reverse=True):
+        grupos.setdefault(chave[:4], []).append({"chave": chave, "titulo": meses[chave].get("titulo") or titulo_do_mes(chave)})
+    return [{"ano": ano, "meses": itens} for ano, itens in grupos.items()]
+
+
+def comparativo_mes_anterior(meses: dict, chave: str, em_andamento: bool, momento_dados):
+    """
+    Compara o mês escolhido com o mês anterior (inclusive dezembro do ano anterior).
+    Mês em andamento: o JS compara a PROJEÇÃO do mês (ritmo diário até o dia do
+    último envio) com o total fechado do mês anterior.
+    Mês fechado: compara os números finais.
+    """
+    ano, mes = (int(p) for p in chave.split("-"))
+    ano_ant, mes_ant = (ano, mes - 1) if mes > 1 else (ano - 1, 12)
+    anterior = meses.get(f"{ano_ant}-{mes_ant:02d}")
+    if not anterior:
         return None
 
-    referencia = momento_dados or datetime.now(FUSO_BRASILIA)
-    indice_anterior = referencia.month - 2          # janeiro não tem anterior no mesmo ano
-    if indice_anterior < 0:
-        return None
+    def etapa(dados, trecho):
+        funil = dados.get("funnel") or {}
+        for rotulo, valor in zip(funil.get("labels") or [], funil.get("data") or []):
+            if trecho in str(rotulo).lower():
+                try:
+                    return float(valor or 0)
+                except (TypeError, ValueError):
+                    return 0.0
+        return 0.0
 
-    def valor(lista, i):
-        try:
-            return float(lista[i] or 0)
-        except (IndexError, TypeError, ValueError):
-            return 0.0
-
-    leads = valor((anual.get("total_leads") or {}).get("total") or [], indice_anterior)
-    reunioes = sum(valor(v, indice_anterior) for v in (anual.get("vendedores") or {}).values())
+    leads = etapa(anterior, "lead")
     if not leads:
         return None
 
+    nome = MESES_ABREV[mes_ant - 1] + ("" if ano_ant == ano else f" {ano_ant}")
+    dias_no_mes = calendar.monthrange(ano, mes)[1]
+    referencia = momento_dados or datetime.now(FUSO_BRASILIA)
+    fechado = not em_andamento or chave_do_mes(referencia) != chave
     return {
-        "mes_anterior": MESES_ABREV[indice_anterior],
+        "mes_anterior": nome,
         "leads": leads,
-        "reunioes": reunioes,
-        "dia": referencia.day,
-        "dias_no_mes": calendar.monthrange(referencia.year, referencia.month)[1],
+        "reunioes": etapa(anterior, "reuni"),
+        "fechado": fechado,
+        "dia": dias_no_mes if fechado else referencia.day,
+        "dias_no_mes": dias_no_mes,
     }
+
+
+def receber_pacote(caminho: Path, chave_lista: str, mensagem_ok: str, chave: str):
+    """
+    Webhook do mensal/anual. Aceita o formato novo ({"meses": {...}} ou {"anos": {...}})
+    e o antigo (um período só). No formato novo, só grava se vier pelo menos um período.
+    """
+    if not token_valido():
+        return jsonify({"erro": "Token inválido ou ausente (header X-Webhook-Token)"}), 401
+
+    dados = request.get_json(force=True, silent=True)
+    if not dados or not isinstance(dados, dict):
+        return jsonify({"erro": "Nenhum dado enviado ou JSON inválido"}), 400
+    if chave_lista in dados and not (isinstance(dados[chave_lista], dict) and dados[chave_lista]):
+        return jsonify({"erro": f"'{chave_lista}' veio vazio; nada foi gravado para não zerar o painel"}), 400
+
+    try:
+        salvar_json(caminho, dados)
+        registrar_atualizacao(chave)
+    except Exception as e:  # devolve o erro exato para o n8n
+        return jsonify({"erro_interno": str(e)}), 500
+
+    total = len(dados[chave_lista]) if chave_lista in dados else 1
+    return jsonify({"status": "sucesso", "mensagem": mensagem_ok, "periodos": total}), 200
+
+
+def disparar_n8n() -> list:
+    """Chama cada Webhook do n8n e devolve a lista de erros (vazia se deu tudo certo)."""
+    erros = []
+    for url in N8N_ATUALIZAR_URLS:
+        cabecalhos = {"Content-Type": "application/json"}
+        if WEBHOOK_TOKEN:
+            cabecalhos["X-Webhook-Token"] = WEBHOOK_TOKEN   # o mesmo token que o n8n já usa para enviar
+        pedido = urllib.request.Request(url, data=b'{"origem": "botao-site"}', headers=cabecalhos, method="POST")
+        try:
+            with urllib.request.urlopen(pedido, timeout=20):
+                pass
+        except urllib.error.HTTPError as e:
+            erros.append(f"o n8n respondeu {e.code}")
+        except Exception as e:  # sem internet, URL errada, n8n fora do ar...
+            erros.append(f"não foi possível falar com o n8n ({e.__class__.__name__})")
+    return erros
 
 
 # =========================================================
@@ -265,25 +369,42 @@ def comparativo_mes_anterior(momento_dados):
 @app.route("/")
 def dashboard():
     status = status_atualizacao("mensal", ARQUIVO_MENSAL)
+    pacote = pacote_mensal()
+    meses = pacote["meses"]
+    atual = pacote["mes_atual"] or chave_do_mes(datetime.now(FUSO_BRASILIA))
+    escolhido = escolher(request.args.get("mes"), meses, atual)
+    em_andamento = escolhido == atual
     return render_template(
         "index.html",
         pagina="mensal",
-        tem_dados=ARQUIVO_MENSAL.exists(),
-        dados=ler_json(ARQUIVO_MENSAL, FALLBACK_MENSAL),
-        analise=ler_json(ARQUIVO_ANALISE_MENSAL, None),
+        tem_dados=bool(escolhido),
+        dados=meses.get(escolhido, FALLBACK_MENSAL),
+        filtro=opcoes_de_meses(meses),
+        escolhido=escolhido,
+        titulo_periodo=titulo_do_mes(escolhido) if escolhido else "",
+        em_andamento=em_andamento,
+        # a análise da IA fala do mês atual, então só aparece nele
+        analise=ler_json(ARQUIVO_ANALISE_MENSAL, None) if em_andamento else None,
         status=status,
-        comparativo=comparativo_mes_anterior(status["momento"]),
+        comparativo=comparativo_mes_anterior(meses, escolhido, em_andamento, status["momento"]) if escolhido else None,
     )
 
 
 @app.route("/visao-anual")
 def visao_anual():
+    pacote = pacote_anual()
+    anos = pacote["anos"]
+    atual = pacote["ano_atual"] or str(datetime.now(FUSO_BRASILIA).year)
+    escolhido = escolher(request.args.get("ano"), anos, atual)
     return render_template(
         "visao_anual.html",
         pagina="anual",
-        tem_dados=ARQUIVO_ANUAL.exists(),
-        dados_anuais=ler_json(ARQUIVO_ANUAL, FALLBACK_ANUAL),
-        analise=ler_json(ARQUIVO_ANALISE_ANUAL, None),
+        tem_dados=bool(escolhido),
+        dados_anuais=anos.get(escolhido, FALLBACK_ANUAL),
+        anos=sorted(anos, reverse=True),
+        escolhido=escolhido,
+        em_andamento=escolhido == atual,
+        analise=ler_json(ARQUIVO_ANALISE_ANUAL, None) if escolhido == atual else None,
         status=status_atualizacao("anual", ARQUIVO_ANUAL),
     )
 
@@ -295,16 +416,46 @@ def health():
 
 
 # =========================================================
+# BOTÃO "ATUALIZAR AGORA"
+# =========================================================
+@app.route("/api/status")
+def api_status():
+    """Horário (UTC) do último envio do n8n de cada página. O botão compara antes e depois."""
+    return jsonify(ler_json(ARQUIVO_ATUALIZACOES, {})), 200
+
+
+@app.route("/api/atualizar", methods=["POST"])
+def api_atualizar():
+    if not N8N_ATUALIZAR_URLS:
+        return jsonify({"erro": "O botão ainda não foi configurado (falta a variável N8N_ATUALIZAR_URL no Render)."}), 503
+
+    # Se alguém apertou há pouco, não roda de novo: só espera o envio que já está a caminho
+    ultimo = ler_json(ARQUIVO_PEDIDO, {}).get("em")
+    if ultimo:
+        passados = (datetime.now(timezone.utc) - datetime.fromisoformat(ultimo)).total_seconds()
+        if passados < SEGUNDOS_ENTRE_PEDIDOS:
+            return jsonify({"status": "em_andamento", "aguarde": int(SEGUNDOS_ENTRE_PEDIDOS - passados)}), 200
+
+    salvar_json(ARQUIVO_PEDIDO, {"em": datetime.now(timezone.utc).isoformat()})
+    erros = disparar_n8n()
+    if erros:
+        salvar_json(ARQUIVO_PEDIDO, {})   # libera um novo clique, já que este não funcionou
+        return jsonify({"erro": "Não foi possível iniciar a atualização: " + "; ".join(erros) + "."}), 502
+
+    return jsonify({"status": "disparado"}), 200
+
+
+# =========================================================
 # WEBHOOKS (o n8n injeta os dados aqui)
 # =========================================================
 @app.route("/atualizar-dados", methods=["POST"])
 def atualizar_dados():
-    return receber_webhook(ARQUIVO_MENSAL, "Dados gravados!", "mensal")
+    return receber_pacote(ARQUIVO_MENSAL, "meses", "Dados gravados!", "mensal")
 
 
 @app.route("/webhook/visao-anual", methods=["POST"])
 def webhook_visao_anual():
-    return receber_webhook(ARQUIVO_ANUAL, "Dados anuais gravados!", "anual")
+    return receber_pacote(ARQUIVO_ANUAL, "anos", "Dados anuais gravados!", "anual")
 
 
 @app.route("/webhook/analise-mensal", methods=["POST"])

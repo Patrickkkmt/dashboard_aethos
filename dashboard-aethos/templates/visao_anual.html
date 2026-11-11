@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Visão Anual{% endblock %}
+{% block title %}Visão Anual{% if escolhido %} {{ escolhido }}{% endif %}{% endblock %}
 
 {% block header_meta %}
 {% include '_status.html' %}
@@ -8,6 +8,8 @@
 
 {% block content %}
 {% if tem_dados %}
+{% include '_filtro.html' %}
+
 <!-- Indicadores do ano (preenchidos pelo visao_anual.js) -->
 <section class="container">
   <div class="kpi-grid kpi-grid--4" id="kpi-strip"></div>

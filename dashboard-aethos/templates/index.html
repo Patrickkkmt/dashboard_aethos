@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard SDR{% endblock %}
+{% block title %}{{ titulo_periodo or "Dashboard SDR" }}{% endblock %}
 
 {% block header_meta %}
 {% include '_status.html' %}
@@ -8,6 +8,8 @@
 
 {% block content %}
 {% if tem_dados %}
+{% include '_filtro.html' %}
+
 <!-- Indicadores principais (preenchidos pelo dashboard.js) -->
 <section class="container">
   <div class="kpi-grid kpi-grid--6" id="kpi-strip"></div>

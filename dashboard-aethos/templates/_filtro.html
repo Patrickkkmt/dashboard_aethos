@@ -1,0 +1,28 @@
+{# Filtro de período: troca o mês (página mensal) ou o ano (página anual) #}
+<section class="container periodo">
+  <form class="periodo__form" method="get" action="">
+    {% if pagina == 'mensal' %}
+    <label class="periodo__rotulo" for="filtro-periodo">Mês</label>
+    <select class="periodo__select" id="filtro-periodo" name="mes" onchange="this.form.submit()">
+      {% for grupo in filtro %}
+      <optgroup label="{{ grupo.ano }}">
+        {% for item in grupo.meses %}
+        <option value="{{ item.chave }}" {% if item.chave == escolhido %}selected{% endif %}>{{ item.titulo }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
+    </select>
+    {% else %}
+    <label class="periodo__rotulo" for="filtro-periodo">Ano</label>
+    <select class="periodo__select" id="filtro-periodo" name="ano" onchange="this.form.submit()">
+      {% for ano in anos %}
+      <option value="{{ ano }}" {% if ano == escolhido %}selected{% endif %}>{{ ano }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <noscript><button type="submit" class="periodo__botao">Ver</button></noscript>
+  </form>
+  <span class="periodo__selo {% if em_andamento %}periodo__selo--aberto{% endif %}">
+    {% if pagina == 'mensal' %}{{ 'Mês em andamento' if em_andamento else 'Mês fechado' }}{% else %}{{ 'Ano em andamento' if em_andamento else 'Ano fechado' }}{% endif %}
+  </span>
+</section>

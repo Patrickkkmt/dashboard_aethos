@@ -29,12 +29,14 @@
 
   // ---------------------------------------------------------
   // 2. COMPARAÇÃO COM O MÊS ANTERIOR
-  //    O mês atual ainda não fechou: comparamos a PROJEÇÃO do mês
+  //    Mês em andamento: comparamos a PROJEÇÃO do mês
   //    (ritmo por dia × dias do mês) com o total do mês anterior.
+  //    Mês fechado: comparamos os números finais dos dois meses.
   // ---------------------------------------------------------
   const comp = Aethos.lerDados('comparativo');
-  const podeComparar = comp && comp.dia >= 3; // com 1 ou 2 dias a projeção ainda é instável
-  const projetar = (valorAtual) => Math.round((valorAtual / comp.dia) * comp.dias_no_mes);
+  const fechado = !!comp?.fechado;
+  const podeComparar = comp && (fechado || comp.dia >= 3); // com 1 ou 2 dias a projeção ainda é instável
+  const projetar = (valorAtual) => (fechado ? valorAtual : Math.round((valorAtual / comp.dia) * comp.dias_no_mes));
 
   const variacao = (atual, anterior) => {
     if (!anterior) return null;
@@ -48,6 +50,9 @@
     const projecao = projetar(valorAtual);
     const v = variacao(projecao, anterior);
     if (!v) return null;
+    if (fechado) {
+      return { ...v, detalhe: '', titulo: `Em ${comp.mes_anterior} foram ${num(anterior)} ${nome}.` };
+    }
     return {
       ...v,
       detalhe: `projeção do mês: ${num(projecao)}`,
