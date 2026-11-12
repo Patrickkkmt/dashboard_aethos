@@ -24,6 +24,19 @@ const Aethos = (() => {
              '#B5D86F', '#5B7A99', '#F2C94C', '#C2363B', '#4E8A1E', '#9AA9B8'],
   };
 
+  // ---------- Cor fixa de cada vendedor (a mesma no mensal e no anual, em qualquer mês) ----------
+  // Quem não estiver na lista recebe as cores seguintes.
+  const ORDEM_VENDEDORES = ['Luan', 'Luiz', 'Fernando', 'Karine'];
+  const ordemVendedor = (nome) => {
+    const i = ORDEM_VENDEDORES.findIndex((n) => n.toLowerCase() === String(nome).trim().toLowerCase());
+    return i >= 0 ? i : ORDEM_VENDEDORES.length;
+  };
+  const corVendedor = (nome, indiceReserva = 0) => {
+    const i = ordemVendedor(nome);
+    const pos = i < ORDEM_VENDEDORES.length ? i : ORDEM_VENDEDORES.length + indiceReserva;
+    return CORES.vendedores[pos % CORES.vendedores.length];
+  };
+
   // ---------- Números ----------
   const formatador = new Intl.NumberFormat('pt-BR');
   const num = (v) => formatador.format(Number(v) || 0);
@@ -168,7 +181,7 @@ const Aethos = (() => {
 
   return {
     CORES, PLUGINS, num, soma, pct, paraNumeros, escapeHtml, hexToRgba, textoSobre,
-    lerDados, configurarChartJs, rotulo, pluginTextoCentral,
+    lerDados, configurarChartJs, rotulo, pluginTextoCentral, ordemVendedor, corVendedor,
     renderKpis, renderLegenda, preencherRodape, aoCarregar,
   };
 })();

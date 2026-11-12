@@ -50,6 +50,13 @@ N8N_ATUALIZAR_URLS = [u.strip() for u in os.environ.get("N8N_ATUALIZAR_URL", "")
 ARQUIVO_PEDIDO = BASE_DIR / "ultimo_pedido.json"   # quando o botão foi apertado pela última vez
 SEGUNDOS_ENTRE_PEDIDOS = 120                        # evita que vários cliques rodem o n8n em sequência
 
+# Vendedores que só fizeram parte do time num período (mês inicial, mês final, no formato AAAA-MM).
+# Fora desse período eles somem dos gráficos. Quem não está aqui aparece sempre.
+# Ex.: alguém que entrou em março de 2027 e continua:  "Nome": ("2027-03", None)
+PERIODO_VENDEDORES = {
+    "Karine": ("2026-01", "2026-07"),
+}
+
 app = Flask(__name__)
 
 # Ícone da Aethos usado no cabeçalho e na aba do navegador.
@@ -263,6 +270,34 @@ def pacote_anual() -> dict:
     return {"anos": {}, "ano_atual": None}
 
 
+def vendedor_ativo(nome: str, chave_mes: str) -> bool:
+    """True se o vendedor fazia parte do time no mês (AAAA-MM)."""
+    periodo = PERIODO_VENDEDORES.get(str(nome).strip())
+    if not periodo:
+        return True
+    inicio, fim = periodo
+    return (not inicio or chave_mes >= inicio) and (not fim or chave_mes <= fim)
+
+
+def vendedores_do_mes(dados: dict, chave_mes: str) -> dict:
+    """Tira do gráfico mensal quem não estava no time naquele mês."""
+    vend = dados.get("vendedores") or {}
+    pares = [(n, v) for n, v in zip(vend.get("labels") or [], vend.get("data") or []) if vendedor_ativo(n, chave_mes)]
+    return {**dados, "vendedores": {"labels": [n for n, _ in pares], "data": [v for _, v in pares]}}
+
+
+def vendedores_do_ano(dados: dict, ano: str) -> dict:
+    """No anual, os meses fora do período ficam vazios (sem barra); quem não esteve no ano some."""
+    resultado = {}
+    for nome, serie in (dados.get("vendedores") or {}).items():
+        valores = list(serie or [])
+        ativos = [vendedor_ativo(nome, f"{ano}-{i + 1:02d}") for i in range(12)]
+        if not any(ativos):
+            continue
+        resultado[nome] = [v if (i < 12 and ativos[i]) else None for i, v in enumerate(valores)]
+    return {**dados, "vendedores": resultado}
+
+
 def escolher(pedido, disponiveis, padrao):
     """Usa o período pedido na URL; se não existir, o atual; senão, o mais recente."""
     if pedido in disponiveis:
@@ -378,7 +413,7 @@ def dashboard():
         "index.html",
         pagina="mensal",
         tem_dados=bool(escolhido),
-        dados=meses.get(escolhido, FALLBACK_MENSAL),
+        dados=vendedores_do_mes(meses[escolhido], escolhido) if escolhido else FALLBACK_MENSAL,
         filtro=opcoes_de_meses(meses),
         escolhido=escolhido,
         titulo_periodo=titulo_do_mes(escolhido) if escolhido else "",
@@ -400,7 +435,7 @@ def visao_anual():
         "visao_anual.html",
         pagina="anual",
         tem_dados=bool(escolhido),
-        dados_anuais=anos.get(escolhido, FALLBACK_ANUAL),
+        dados_anuais=vendedores_do_ano(anos[escolhido], escolhido) if escolhido else FALLBACK_ANUAL,
         anos=sorted(anos, reverse=True),
         escolhido=escolhido,
         em_andamento=escolhido == atual,

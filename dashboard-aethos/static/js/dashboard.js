@@ -161,7 +161,7 @@
         datasets: [{
           label: 'Reuniões agendadas',
           data: vendValores,
-          backgroundColor: vendLabels.map((_, i) => CORES.vendedores[i % CORES.vendedores.length]),
+          backgroundColor: vendLabels.map((nome, i) => Aethos.corVendedor(nome, i)),
           borderRadius: 8,
           borderSkipped: false,
           maxBarThickness: 56,

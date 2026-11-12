@@ -34,7 +34,15 @@
   const leads = { fb: cortar(fbBruto), org: cortar(orgBruto), total: cortar(totalBruto) };
   const perdasFb = (bruto.perdas_fb || []).map((m) => ({ label: m.label, data: cortar(m.data) }));
   const perdasOrg = (bruto.perdas_org || []).map((m) => ({ label: m.label, data: cortar(m.data) }));
-  const vendedores = Object.entries(bruto.vendedores || {}).map(([nome, data]) => ({ nome, data: cortar(data) }));
+  // Vendedores: "null" = mês em que a pessoa não estava no time (fica sem barra)
+  const cortarVendedor = (arr) => {
+    const a = (arr || []).slice(0, qtdMeses).map((v) => (v === null ? null : Number(v) || 0));
+    while (a.length < qtdMeses) a.push(0);
+    return a;
+  };
+  const vendedores = Object.entries(bruto.vendedores || {})
+    .map(([nome, data]) => ({ nome, data: cortarVendedor(data) }))
+    .sort((a, b) => Aethos.ordemVendedor(a.nome) - Aethos.ordemVendedor(b.nome));
 
   // ---------------------------------------------------------
   // 2. CABEÇALHO E KPIs
@@ -319,7 +327,8 @@
       data: {
         labels: meses,
         datasets: vendedores.map((v, i) => serie(v.nome, v.data, {
-          backgroundColor: CORES.vendedores[i % CORES.vendedores.length],
+          backgroundColor: Aethos.corVendedor(v.nome, i),
+          skipNull: true, // mês sem a pessoa no time: as outras barras ocupam o espaço
           borderRadius: 4,
           borderSkipped: false,
           maxBarThickness: 28,
@@ -339,6 +348,7 @@
         plugins: {
           legend: legendaBaixo,
           tooltip: {
+            filter: (item) => item.raw !== null, // quem não estava no time naquele mês não aparece
             itemSort: (a, b) => b.parsed.y - a.parsed.y,
             callbacks: {
               label: tooltipNome,
